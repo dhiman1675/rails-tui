@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require 'thor'
-require 'tty-prompt'
-require 'pastel'
-require_relative 'generator'
+require "thor"
+require "tty-prompt"
+require "pastel"
+require_relative "generator"
 
 module Rails
   module Tui

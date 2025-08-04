@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require 'tty-prompt'
-require 'pastel'
-require 'tty-table'
-require_relative 'generators/model_generator'
-require_relative 'generators/controller_generator'
-require_relative 'generators/migration_generator'
+require "tty-prompt"
+require "pastel"
+require "tty-table"
+require_relative "generators/model_generator"
+require_relative "generators/controller_generator"
+require_relative "generators/migration_generator"
 
 module Rails
   module Tui
@@ -17,23 +17,23 @@ module Rails
 
       def start
         display_welcome
-        
+
         loop do
           choice = main_menu
-          
+
           case choice
-          when 'Model'
+          when "Model"
             Generators::ModelGenerator.new(@prompt, @pastel).generate
-          when 'Controller'
+          when "Controller"
             Generators::ControllerGenerator.new(@prompt, @pastel).generate
-          when 'Migration'
+          when "Migration"
             Generators::MigrationGenerator.new(@prompt, @pastel).generate
-          when 'Exit'
+          when "Exit"
             puts @pastel.green("\nGoodbye! 👋")
             break
           end
-          
-          puts "\n" + "=" * 50 + "\n"
+
+          puts "\n#{"=" * 50}\n"
         end
       end
 
@@ -46,10 +46,10 @@ module Rails
 
       def main_menu
         @prompt.select(@pastel.yellow("What would you like to generate?")) do |menu|
-          menu.choice @pastel.green("📊 Model"), 'Model'
-          menu.choice @pastel.blue("🎮 Controller"), 'Controller'
-          menu.choice @pastel.magenta("📝 Migration"), 'Migration'
-          menu.choice @pastel.red("❌ Exit"), 'Exit'
+          menu.choice @pastel.green("📊 Model"), "Model"
+          menu.choice @pastel.blue("🎮 Controller"), "Controller"
+          menu.choice @pastel.magenta("📝 Migration"), "Migration"
+          menu.choice @pastel.red("❌ Exit"), "Exit"
         end
       end
     end

@@ -9,7 +9,8 @@ Gem::Specification.new do |spec|
   spec.email = ["dhiman1675@gmail.com"]
 
   spec.summary = "A Terminal User Interface for generating Rails components"
-  spec.description = "Rails TUI provides an interactive terminal interface to generate models, migrations, controllers, and other Rails components with ease."
+  spec.description = "Rails TUI provides an interactive terminal interface to generate models, " \
+                     "migrations, controllers, and other Rails components with ease."
   spec.homepage = "https://github.com/rohitdhiman/rails-tui"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.1.0"
@@ -34,11 +35,11 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   # Dependencies for TUI functionality
-  spec.add_dependency "tty-prompt", "~> 0.23"
-  spec.add_dependency "tty-table", "~> 0.12"
   spec.add_dependency "pastel", "~> 0.8"
   spec.add_dependency "thor", "~> 1.0"
-  
+  spec.add_dependency "tty-prompt", "~> 0.23"
+  spec.add_dependency "tty-table", "~> 0.12"
+
   # Development dependencies
   spec.add_development_dependency "rspec", "~> 3.0"
   spec.add_development_dependency "rubocop", "~> 1.0"
