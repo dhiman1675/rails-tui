@@ -17,7 +17,7 @@ module Rails
         def generate
           puts @pastel.blue.bold("\n🎮 Controller Generator")
 
-          name = controller_name
+          controller_name
           actions = collect_actions
 
           display_summary(controller_name, actions)
