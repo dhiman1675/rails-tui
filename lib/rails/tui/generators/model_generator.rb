@@ -48,7 +48,7 @@ module Rails
               q.modify :strip
             end
             
-            break if field_name.empty?
+            break if field_name.nil? || field_name.empty?
             
             field_type = @prompt.select(@pastel.yellow("Field type:")) do |menu|
               FIELD_TYPES.each { |type| menu.choice type }

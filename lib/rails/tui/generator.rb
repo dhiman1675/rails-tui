@@ -23,11 +23,11 @@ module Rails
           
           case choice
           when 'Model'
-            ModelGenerator.new(@prompt, @pastel).generate
+            Generators::ModelGenerator.new(@prompt, @pastel).generate
           when 'Controller'
-            ControllerGenerator.new(@prompt, @pastel).generate
+            Generators::ControllerGenerator.new(@prompt, @pastel).generate
           when 'Migration'
-            MigrationGenerator.new(@prompt, @pastel).generate
+            Generators::MigrationGenerator.new(@prompt, @pastel).generate
           when 'Exit'
             puts @pastel.green("\nGoodbye! 👋")
             break

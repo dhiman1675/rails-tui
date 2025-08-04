@@ -219,7 +219,7 @@ module Rails
               q.modify :strip
             end
             
-            break if field_name.empty?
+            break if field_name.nil? || field_name.empty?
             
             field_type = get_column_type
             

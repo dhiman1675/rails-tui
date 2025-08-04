@@ -60,7 +60,7 @@ module Rails
               q.modify :strip
             end
             
-            break if action_name.empty?
+            break if action_name.nil? || action_name.empty?
             
             actions << action_name unless actions.include?(action_name)
           end
