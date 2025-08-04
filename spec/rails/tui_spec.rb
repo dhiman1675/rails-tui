@@ -5,7 +5,8 @@ RSpec.describe Rails::Tui do
     expect(Rails::Tui::VERSION).not_to be nil
   end
 
-  it "does something useful" do
-    expect(false).to eq(true)
+  it "has CLI and Generator classes available" do
+    expect(Rails::Tui::CLI).to be_a(Class)
+    expect(Rails::Tui::Generator).to be_a(Class)
   end
 end
