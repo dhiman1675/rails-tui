@@ -9,6 +9,7 @@ require_relative "generators/migration_generator"
 
 module Rails
   module Tui
+    # Main generator class that provides the TUI interface
     class Generator
       def initialize
         @prompt = TTY::Prompt.new
@@ -17,27 +18,40 @@ module Rails
 
       def start
         display_welcome
-
-        loop do
-          choice = main_menu
-
-          case choice
-          when "Model"
-            Generators::ModelGenerator.new(@prompt, @pastel).generate
-          when "Controller"
-            Generators::ControllerGenerator.new(@prompt, @pastel).generate
-          when "Migration"
-            Generators::MigrationGenerator.new(@prompt, @pastel).generate
-          when "Exit"
-            puts @pastel.green("\nGoodbye! 👋")
-            break
-          end
-
-          puts "\n#{"=" * 50}\n"
-        end
+        run_generation_loop
       end
 
       private
+
+      def run_generation_loop
+        loop do
+          choice = main_menu
+          break if choice == "Exit"
+
+          execute_generator(choice)
+          display_separator
+        end
+        display_goodbye
+      end
+
+      def execute_generator(choice)
+        generators = {
+          "Model" => Generators::ModelGenerator,
+          "Controller" => Generators::ControllerGenerator,
+          "Migration" => Generators::MigrationGenerator
+        }
+
+        generator_class = generators[choice]
+        generator_class&.new(@prompt, @pastel)&.generate
+      end
+
+      def display_separator
+        puts "\n#{"=" * 50}\n"
+      end
+
+      def display_goodbye
+        puts @pastel.green("\nGoodbye! 👋")
+      end
 
       def display_welcome
         puts @pastel.cyan.bold("\n🚀 Rails TUI Generator")

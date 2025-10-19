@@ -7,6 +7,7 @@ require_relative "generator"
 
 module Rails
   module Tui
+    # Command Line Interface for Rails TUI generator
     class CLI < Thor
       desc "generate", "Launch interactive TUI to generate Rails components"
       def generate

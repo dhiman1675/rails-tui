@@ -41,19 +41,28 @@ module Rails
 
         def collect_actions
           actions = []
+          actions.concat(collect_restful_actions)
+          actions.concat(collect_custom_actions)
+          actions.uniq
+        end
 
+        def collect_restful_actions
           # Ask if they want common RESTful actions
-          if @prompt.yes?(@pastel.cyan("Include common RESTful actions (index, show, new, create, edit, update, destroy)?"))
-            actions.concat(COMMON_ACTIONS)
+          question = "Include common RESTful actions "
+          question += "(index, show, new, create, edit, update, destroy)?"
+
+          if @prompt.yes?(@pastel.cyan(question))
+            COMMON_ACTIONS
           else
             # Let them select specific common actions
-            selected_actions = @prompt.multi_select(@pastel.cyan("Select actions to include:")) do |menu|
+            @prompt.multi_select(@pastel.cyan("Select actions to include:")) do |menu|
               COMMON_ACTIONS.each { |action| menu.choice action }
             end
-            actions.concat(selected_actions)
           end
+        end
 
-          # Ask for custom actions
+        def collect_custom_actions
+          actions = []
           puts @pastel.cyan("\nAdd custom actions (press Enter with empty name to finish):")
 
           loop do
@@ -66,7 +75,7 @@ module Rails
             actions << action_name unless actions.include?(action_name)
           end
 
-          actions.uniq
+          actions
         end
 
         def display_summary(controller_name, actions)
@@ -81,14 +90,23 @@ module Rails
         end
 
         def generate_controller_command(controller_name, actions)
+          command = build_command(controller_name, actions)
+          display_command(command)
+          execute_command_if_confirmed(command)
+        end
+
+        def build_command(controller_name, actions)
           command_parts = ["rails generate controller #{controller_name}"]
           command_parts.concat(actions) if actions.any?
+          command_parts.join(" ")
+        end
 
-          command = command_parts.join(" ")
-
+        def display_command(command)
           puts @pastel.green.bold("\n🚀 Generated Command:")
           puts @pastel.white(command)
+        end
 
+        def execute_command_if_confirmed(command)
           if @prompt.yes?(@pastel.yellow("\nExecute this command now?"))
             puts @pastel.cyan("Executing: #{command}")
             system(command)

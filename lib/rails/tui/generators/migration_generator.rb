@@ -27,27 +27,26 @@ module Rails
 
         def generate
           puts @pastel.magenta.bold("\n📝 Migration Generator")
-
           migration_type = select_migration_type
+          execute_migration_type(migration_type)
+        end
 
-          case migration_type
-          when "Create table"
-            generate_create_table_migration
-          when "Add column"
-            generate_add_column_migration
-          when "Remove column"
-            generate_remove_column_migration
-          when "Change column"
-            generate_change_column_migration
-          when "Rename column"
-            generate_rename_column_migration
-          when "Add index"
-            generate_add_index_migration
-          when "Remove index"
-            generate_remove_index_migration
-          when "Custom migration"
-            generate_custom_migration
-          end
+        def execute_migration_type(migration_type)
+          method = migration_method_map[migration_type]
+          send(method) if method
+        end
+
+        def migration_method_map
+          {
+            "Create table" => :generate_create_table_migration,
+            "Add column" => :generate_add_column_migration,
+            "Remove column" => :generate_remove_column_migration,
+            "Change column" => :generate_change_column_migration,
+            "Rename column" => :generate_rename_column_migration,
+            "Add index" => :generate_add_index_migration,
+            "Remove index" => :generate_remove_index_migration,
+            "Custom migration" => :generate_custom_migration
+          }
         end
 
         private
@@ -59,32 +58,38 @@ module Rails
         end
 
         def generate_create_table_migration
-          table_name = get_table_name
+          table_name = ask_for_table_name
           fields = collect_fields
-
           migration_name = "Create#{table_name.capitalize}"
 
           display_create_table_summary(migration_name, table_name, fields)
 
           return unless @prompt.yes?(@pastel.yellow("Generate this migration?"))
 
+          command = build_create_table_command(migration_name, fields)
+          execute_command(command)
+        end
+
+        def build_create_table_command(migration_name, fields)
           command_parts = ["rails generate migration #{migration_name}"]
+          command_parts.concat(build_field_arguments(fields))
+          command_parts.join(" ")
+        end
 
-          fields.each do |field|
-            command_parts << if field[:type] == "references"
-                               "#{field[:name]}:references"
-                             else
-                               "#{field[:name]}:#{field[:type]}"
-                             end
+        def build_field_arguments(fields)
+          fields.map do |field|
+            if field[:type] == "references"
+              "#{field[:name]}:references"
+            else
+              "#{field[:name]}:#{field[:type]}"
+            end
           end
-
-          execute_command(command_parts.join(" "))
         end
 
         def generate_add_column_migration
-          table_name = get_table_name
-          column_name = get_column_name
-          column_type = get_column_type
+          table_name = ask_for_table_name
+          column_name = ask_for_column_name
+          column_type = ask_for_column_type
 
           migration_name = "Add#{column_name.capitalize}To#{table_name.capitalize}"
           command = "rails generate migration #{migration_name} #{column_name}:#{column_type}"
@@ -97,8 +102,8 @@ module Rails
         end
 
         def generate_remove_column_migration
-          table_name = get_table_name
-          column_name = get_column_name
+          table_name = ask_for_table_name
+          column_name = ask_for_column_name
 
           migration_name = "Remove#{column_name.capitalize}From#{table_name.capitalize}"
           command = "rails generate migration #{migration_name} #{column_name}"
@@ -111,46 +116,68 @@ module Rails
         end
 
         def generate_change_column_migration
-          table_name = get_table_name
-          column_name = get_column_name
-          new_type = get_column_type
+          table_name = ask_for_table_name
+          column_name = ask_for_column_name
+          new_type = ask_for_column_type
 
           migration_name = "Change#{column_name.capitalize}In#{table_name.capitalize}"
           command = "rails generate migration #{migration_name}"
 
+          display_change_column_summary(migration_name, column_name, new_type, table_name)
+          execute_if_confirmed(command)
+        end
+
+        def display_change_column_summary(migration_name, column_name, new_type, table_name)
           puts @pastel.cyan.bold("\n📋 Migration Summary:")
           puts @pastel.white("Migration: #{migration_name}")
           puts @pastel.white("Action: Change column '#{column_name}' to type '#{new_type}' in '#{table_name}' table")
-          puts @pastel.yellow("Note: You'll need to manually edit the migration file to specify the change_column method")
-
-          execute_if_confirmed(command)
+          note = "Note: You'll need to manually edit the migration file to "
+          note += "specify the change_column method"
+          puts @pastel.yellow(note)
         end
 
         def generate_rename_column_migration
-          table_name = get_table_name
-          old_name = @prompt.ask(@pastel.cyan("Current column name:")) do |q|
-            q.required true
-            q.modify :strip
-          end
-          new_name = @prompt.ask(@pastel.cyan("New column name:")) do |q|
-            q.required true
-            q.modify :strip
-          end
+          table_name = ask_for_table_name
+          old_name = ask_for_current_column_name
+          new_name = ask_for_new_column_name
 
-          migration_name = "Rename#{old_name.capitalize}To#{new_name.capitalize}In#{table_name.capitalize}"
+          migration_name = build_rename_migration_name(old_name, new_name, table_name)
           command = "rails generate migration #{migration_name}"
 
-          puts @pastel.cyan.bold("\n📋 Migration Summary:")
-          puts @pastel.white("Migration: #{migration_name}")
-          puts @pastel.white("Action: Rename column '#{old_name}' to '#{new_name}' in '#{table_name}' table")
-          puts @pastel.yellow("Note: You'll need to manually edit the migration file to specify the rename_column method")
-
+          display_rename_summary(migration_name, old_name, new_name, table_name)
           execute_if_confirmed(command)
         end
 
+        def ask_for_current_column_name
+          @prompt.ask(@pastel.cyan("Current column name:")) do |q|
+            q.required true
+            q.modify :strip
+          end
+        end
+
+        def ask_for_new_column_name
+          @prompt.ask(@pastel.cyan("New column name:")) do |q|
+            q.required true
+            q.modify :strip
+          end
+        end
+
+        def build_rename_migration_name(old_name, new_name, table_name)
+          "Rename#{old_name.capitalize}To#{new_name.capitalize}In#{table_name.capitalize}"
+        end
+
+        def display_rename_summary(migration_name, old_name, new_name, table_name)
+          puts @pastel.cyan.bold("\n📋 Migration Summary:")
+          puts @pastel.white("Migration: #{migration_name}")
+          puts @pastel.white("Action: Rename column '#{old_name}' to '#{new_name}' in '#{table_name}' table")
+          note = "Note: You'll need to manually edit the migration file to "
+          note += "specify the rename_column method"
+          puts @pastel.yellow(note)
+        end
+
         def generate_add_index_migration
-          table_name = get_table_name
-          column_name = get_column_name
+          table_name = ask_for_table_name
+          column_name = ask_for_column_name
 
           migration_name = "AddIndexTo#{table_name.capitalize}On#{column_name.capitalize}"
           command = "rails generate migration #{migration_name}"
@@ -164,52 +191,64 @@ module Rails
         end
 
         def generate_remove_index_migration
-          table_name = get_table_name
-          column_name = get_column_name
+          table_name = ask_for_table_name
+          column_name = ask_for_column_name
 
           migration_name = "RemoveIndexFrom#{table_name.capitalize}On#{column_name.capitalize}"
           command = "rails generate migration #{migration_name}"
 
-          puts @pastel.cyan.bold("\n📋 Migration Summary:")
-          puts @pastel.white("Migration: #{migration_name}")
-          puts @pastel.white("Action: Remove index on '#{column_name}' column from '#{table_name}' table")
-          puts @pastel.yellow("Note: You'll need to manually edit the migration file to specify the remove_index method")
-
+          display_remove_index_summary(migration_name, column_name, table_name)
           execute_if_confirmed(command)
         end
 
+        def display_remove_index_summary(migration_name, column_name, table_name)
+          puts @pastel.cyan.bold("\n📋 Migration Summary:")
+          puts @pastel.white("Migration: #{migration_name}")
+          puts @pastel.white("Action: Remove index on '#{column_name}' column from '#{table_name}' table")
+          note = "Note: You'll need to manually edit the migration file to "
+          note += "specify the remove_index method"
+          puts @pastel.yellow(note)
+        end
+
         def generate_custom_migration
-          migration_name = @prompt.ask(@pastel.cyan("Migration name:")) do |q|
+          migration_name = ask_for_migration_name
+          command = "rails generate migration #{migration_name}"
+          display_custom_migration_summary(migration_name)
+          execute_if_confirmed(command)
+        end
+
+        def ask_for_migration_name
+          @prompt.ask(@pastel.cyan("Migration name:")) do |q|
             q.required true
             q.validate(/\A[A-Z][a-zA-Z0-9_]*\z/, "Migration name must be in PascalCase")
             q.modify :strip
           end
+        end
 
-          command = "rails generate migration #{migration_name}"
-
+        def display_custom_migration_summary(migration_name)
           puts @pastel.cyan.bold("\n📋 Migration Summary:")
           puts @pastel.white("Migration: #{migration_name}")
           puts @pastel.white("Action: Create custom migration")
-          puts @pastel.yellow("Note: You'll need to manually edit the migration file to add your custom logic")
-
-          execute_if_confirmed(command)
+          note = "Note: You'll need to manually edit the migration file to "
+          note += "add your custom logic"
+          puts @pastel.yellow(note)
         end
 
-        def get_table_name
+        def ask_for_table_name
           @prompt.ask(@pastel.cyan("Table name:")) do |q|
             q.required true
             q.modify :strip
           end
         end
 
-        def get_column_name
+        def ask_for_column_name
           @prompt.ask(@pastel.cyan("Column name:")) do |q|
             q.required true
             q.modify :strip
           end
         end
 
-        def get_column_type
+        def ask_for_column_type
           @prompt.select(@pastel.cyan("Column type:")) do |menu|
             FIELD_TYPES.each { |type| menu.choice type }
             menu.choice "reference", "references"
@@ -218,49 +257,64 @@ module Rails
 
         def collect_fields
           fields = []
-
           puts @pastel.cyan("\nAdd fields to your table (press Enter with empty name to finish):")
 
           loop do
-            field_name = @prompt.ask(@pastel.yellow("Field name:")) do |q|
-              q.modify :strip
-            end
+            field = collect_single_field
+            break unless field
 
-            break if field_name.nil? || field_name.empty?
-
-            field_type = get_column_type
-
-            if field_type == "references"
-              reference_model = @prompt.ask(@pastel.yellow("Reference model name:")) do |q|
-                q.required true
-                q.modify :strip
-              end
-              fields << { name: field_name, type: "references", reference: reference_model }
-            else
-              fields << { name: field_name, type: field_type }
-            end
+            fields << field
           end
 
           fields
+        end
+
+        def collect_single_field
+          field_name = @prompt.ask(@pastel.yellow("Field name:")) do |q|
+            q.modify :strip
+          end
+
+          return nil if field_name.nil? || field_name.empty?
+
+          field_type = ask_for_column_type
+          build_field(field_name, field_type)
+        end
+
+        def build_field(field_name, field_type)
+          if field_type == "references"
+            reference_model = @prompt.ask(@pastel.yellow("Reference model name:")) do |q|
+              q.required true
+              q.modify :strip
+            end
+            { name: field_name, type: "references", reference: reference_model }
+          else
+            { name: field_name, type: field_type }
+          end
         end
 
         def display_create_table_summary(migration_name, table_name, fields)
           puts @pastel.cyan.bold("\n📋 Migration Summary:")
           puts @pastel.white("Migration: #{migration_name}")
           puts @pastel.white("Action: Create table '#{table_name}'")
+          display_fields_table(fields)
+        end
 
+        def display_fields_table(fields)
           if fields.any?
-            table = TTY::Table.new(header: ["Field Name", "Type", "Reference"])
-
-            fields.each do |field|
-              reference = field[:reference] || "-"
-              table << [field[:name], field[:type], reference]
-            end
-
+            table = build_fields_table(fields)
             puts table.render(:unicode)
           else
             puts @pastel.yellow("No fields specified")
           end
+        end
+
+        def build_fields_table(fields)
+          table = TTY::Table.new(header: ["Field Name", "Type", "Reference"])
+          fields.each do |field|
+            reference = field[:reference] || "-"
+            table << [field[:name], field[:type], reference]
+          end
+          table
         end
 
         def execute_if_confirmed(command)
